@@ -22,7 +22,7 @@ export const Header = () => {
   };
 
   return (
-    <nav className="bg-white text-black fixed w-full z-50">
+    <nav className="bg-white text-black w-full z-50">
       <div className="px-12 py-6 w-full">
         <div className="relative flex h-16 items-center justify-between">
           {/* Logo - Left aligned */}
