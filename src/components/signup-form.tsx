@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -31,9 +31,25 @@ const countries = [
 
 export const SignupForm = () => {
   const [agreed, setAgreed] = useState(false);
+  const [phoneValue, setPhoneValue] = useState<string>("");
+  const [phoneError, setPhoneError] = useState<string | undefined>();
+
+  const handlePhoneChange = useCallback((value: string | undefined) => {
+    const phoneStr = value || "";
+    setPhoneValue(phoneStr);
+    
+    // Basic validation
+    if (!phoneStr) {
+      setPhoneError("Phone number is required");
+    } else if (phoneStr.length < 8) {
+      setPhoneError("Phone number is too short");
+    } else {
+      setPhoneError(undefined);
+    }
+  }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 rounded-md">
+    <div className="max-w-3xl mx-auto p-8 rounded-md">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -98,7 +114,11 @@ export const SignupForm = () => {
               id="phone"
               label="Phone Number"
               required
-              placeholder="Enter phone number..."
+              placeholder="(___) - ___"
+              value={phoneValue}
+              onChange={handlePhoneChange}
+              error={phoneError}
+              defaultCountry="AE"
             />
           </div>
         </div>
