@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -9,48 +10,46 @@ import { FormInput } from "@/components/ui/form-input";
 import { FormSelect } from "@/components/ui/form-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { CountryCombobox } from "@/components/ui/country-combobox";
+import { 
+  step1Schema, 
+  type Step1FormData, 
+  genderOptions as validationGenderOptions 
+} from "@/lib/validation";
 
-const genderOptions = [
-  { value: "male", label: "Male" },
-  { value: "female", label: "Female" },
-  { value: "other", label: "Other" },
-  { value: "prefer_not_to_say", label: "Prefer not to say" },
-];
+// Convert validation gender options to component format
+const genderOptions = validationGenderOptions.map((value) => ({
+  value,
+  label: value === "prefer_not_to_say" 
+    ? "Prefer not to say" 
+    : value.charAt(0).toUpperCase() + value.slice(1)
+}));
 
 // Removed static countries array - now using comprehensive country data from CountryCombobox
 
 export const SignupForm = () => {
-  const [agreed, setAgreed] = useState(false);
-  const [phoneValue, setPhoneValue] = useState<string>("");
-  const [phoneError, setPhoneError] = useState<string | undefined>();
-  const [countryValue, setCountryValue] = useState<string>("");
-  const [countryError, setCountryError] = useState<string | undefined>();
-
-  const handlePhoneChange = useCallback((value: string | undefined) => {
-    const phoneStr = value || "";
-    setPhoneValue(phoneStr);
-    
-    // Basic validation
-    if (!phoneStr) {
-      setPhoneError("Phone number is required");
-    } else if (phoneStr.length < 8) {
-      setPhoneError("Phone number is too short");
-    } else {
-      setPhoneError(undefined);
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isValid }
+  } = useForm<Step1FormData>({
+    resolver: zodResolver(step1Schema),
+    mode: "onChange", // Validate on each change
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      gender: undefined,
+      country: "",
+      email: "",
+      phone: "",
+      agreed: false
     }
-  }, []);
-
-  const handleCountryChange = useCallback((value: string | undefined) => {
-    const countryStr = value || "";
-    setCountryValue(countryStr);
-    
-    // Basic validation
-    if (!countryStr) {
-      setCountryError("Residence country is required");
-    } else {
-      setCountryError(undefined);
-    }
-  }, []);
+  });
+  
+  const onSubmit = (data: Step1FormData) => {
+    console.log("Form submitted:", data);
+    // TODO: Handle form submission
+  };
 
   return (
     <div className="max-w-3xl mx-auto p-8 rounded-md">
@@ -65,7 +64,7 @@ export const SignupForm = () => {
         </p>
       </div>
 
-      <form className="space-y-10">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
         {/* Personal Info Section */}
         <div>
           <h2 className="text-2xl font-medium mb-4 text-[#1A1A1A]">Personal Info</h2>
@@ -76,30 +75,49 @@ export const SignupForm = () => {
               label="First Name"
               required
               placeholder="Enter first name..."
+              {...register("firstName")}
+              error={errors.firstName?.message}
             />
             <FormInput
               id="lastName"
               label="Last Name"
               required
               placeholder="Enter last name..."
+              {...register("lastName")}
+              error={errors.lastName?.message}
             />
           </div>
           <div className="grid grid-cols-1 gap-y-6 mt-6">
-            <FormSelect
-              id="gender"
-              label="Gender"
-              required
-              options={genderOptions}
-              placeholder="Select gender..."
+            <Controller
+              name="gender"
+              control={control}
+              render={({ field, fieldState }) => (
+                <FormSelect
+                  id="gender"
+                  label="Gender"
+                  required
+                  options={genderOptions}
+                  placeholder="Select gender..."
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                />
+              )}
             />
-            <CountryCombobox
-              id="country"
-              label="Your Residence Country"
-              required
-              value={countryValue}
-              onChange={handleCountryChange}
-              error={countryError}
-              placeholder="Select residence country..."
+            <Controller
+              name="country"
+              control={control}
+              render={({ field, fieldState }) => (
+                <CountryCombobox
+                  id="country"
+                  label="Your Residence Country"
+                  required
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  placeholder="Select residence country..."
+                />
+              )}
             />
           </div>
         </div>
@@ -115,39 +133,58 @@ export const SignupForm = () => {
               required
               type="email"
               placeholder="Enter email address..."
+              {...register("email")}
+              error={errors.email?.message}
             />
-            <PhoneInput
-              id="phone"
-              label="Phone Number"
-              required
-              placeholder="(___) - ___"
-              value={phoneValue}
-              onChange={handlePhoneChange}
-              error={phoneError}
-              defaultCountry="AE"
+            <Controller
+              name="phone"
+              control={control}
+              render={({ field, fieldState }) => (
+                <PhoneInput
+                  id="phone"
+                  label="Phone Number"
+                  required
+                  placeholder="(___) - ___"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  defaultCountry="AE"
+                />
+              )}
             />
           </div>
         </div>
 
         {/* Terms and Conditions */}
         <div className="flex items-start space-x-2 mt-8">
-          <Checkbox
-            id="terms"
-            checked={agreed}
-            onCheckedChange={(checked) => setAgreed(checked as boolean)}
-            className="mt-1 border-gray-400"
+          <Controller
+            name="agreed"
+            control={control}
+            render={({ field, fieldState }) => (
+              <div className="flex flex-col">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    className="mt-1 border-gray-400"
+                  />
+                  <Label htmlFor="terms" className="text-sm font-normal">
+                    I agree to the{" "}
+                    <Link href="#" className="text-[#5A3A27] underline hover:text-[#7A5A47]">
+                      terms and conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link href="#" className="text-[#5A3A27] underline hover:text-[#7A5A47]">
+                      privacy policy
+                    </Link>
+                    .
+                  </Label>
+                </div>
+                {fieldState.error && <p className="text-red-500 text-sm mt-1 ml-7">{fieldState.error.message}</p>}
+              </div>
+            )}
           />
-          <Label htmlFor="terms" className="text-sm font-normal">
-            I agree to the{" "}
-            <Link href="#" className="text-[#5A3A27] underline hover:text-[#7A5A47]">
-              terms and conditions
-            </Link>{" "}
-            and{" "}
-            <Link href="#" className="text-[#5A3A27] underline hover:text-[#7A5A47]">
-              privacy policy
-            </Link>
-            .
-          </Label>
         </div>
 
         {/* Submit Button */}
@@ -155,7 +192,7 @@ export const SignupForm = () => {
           <Button
             type="submit"
             className="bg-[#006F5F] hover:bg-[#005a4d] text-white px-12 py-3 h-auto text-lg uppercase"
-            disabled={!agreed}
+            disabled={!isValid}
           >
             Next
           </Button>
