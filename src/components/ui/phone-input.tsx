@@ -69,15 +69,35 @@ export const PhoneInput = ({
   // Using utility functions from @/lib/country-utils
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
+    const phoneNumber = e.target.value;
+    const countryCode = getCountryCallingCode(country);
+    // Combine country code with phone number for complete phone string
+    const fullPhoneNumber = phoneNumber ? `+${countryCode}${phoneNumber}` : "";
     if (onChange) {
-      onChange(newValue);
+      onChange(fullPhoneNumber);
     }
   };
 
   const handleCountryChange = (newCountry: Country) => {
     setCountry(newCountry);
     setOpen(false);
+    
+    // Update phone number with new country code if there's a current value
+    if (value && onChange) {
+      const currentPhoneNumber = extractPhoneNumber(value);
+      if (currentPhoneNumber) {
+        const newCountryCode = getCountryCallingCode(newCountry);
+        const newFullPhoneNumber = `+${newCountryCode}${currentPhoneNumber}`;
+        onChange(newFullPhoneNumber);
+      }
+    }
+  };
+
+  // Helper function to extract phone number without country code
+  const extractPhoneNumber = (fullPhone: string) => {
+    if (!fullPhone.startsWith('+')) return fullPhone;
+    const countryCode = getCountryCallingCode(country);
+    return fullPhone.replace(`+${countryCode}`, '');
   };
 
   return (
@@ -120,7 +140,7 @@ export const PhoneInput = ({
                 id={id}
                 type="tel"
                 placeholder={placeholder}
-                value={value || ""}
+                value={extractPhoneNumber(value || "")}
                 onChange={handlePhoneChange}
                 className={cn(
                   "flex-1 h-full border-none rounded-none p-3 shadow-none",

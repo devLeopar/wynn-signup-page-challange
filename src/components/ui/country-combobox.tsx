@@ -19,10 +19,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Country,
-  getCountries,
-} from "react-phone-number-input";
+import { Country, getCountries } from "react-phone-number-input";
 import { renderFlag, getCountryName } from "@/lib/country-utils";
 
 interface CountryComboboxProps {
@@ -47,7 +44,9 @@ export const CountryCombobox = ({
   error,
 }: CountryComboboxProps) => {
   const [open, setOpen] = React.useState(false);
-  const [containerWidth, setContainerWidth] = React.useState<number | undefined>();
+  const [containerWidth, setContainerWidth] = React.useState<
+    number | undefined
+  >();
   const countries = React.useMemo(() => getCountries(), []);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -61,7 +60,7 @@ export const CountryCombobox = ({
   // Find selected country object
   const selectedCountry = React.useMemo(() => {
     if (!value) return null;
-    return countries.find(country => country === value) || null;
+    return countries.find((country) => country === value) || null;
   }, [value, countries]);
 
   const handleCountrySelect = (countryCode: string) => {
@@ -70,7 +69,7 @@ export const CountryCombobox = ({
     }
     setOpen(false);
   };
-
+  // TODO: Onclick takes too much time to open the popover will take a look at it
   return (
     <div className={`space-y-2 ${className}`}>
       <Label htmlFor={id} className="flex items-center text-base gap-0">
@@ -96,7 +95,7 @@ export const CountryCombobox = ({
                   type="button"
                   className={cn(
                     "flex items-center justify-between w-full text-left bg-transparent border-0 p-0",
-                     "rounded-sm",
+                    "rounded-sm",
                     !selectedCountry && "text-gray-500"
                   )}
                   aria-expanded={open}
@@ -110,10 +109,9 @@ export const CountryCombobox = ({
                       </div>
                     )}
                     <span className="flex-1 truncate">
-                      {selectedCountry 
+                      {selectedCountry
                         ? getCountryName(selectedCountry as Country)
-                        : placeholder
-                      }
+                        : placeholder}
                     </span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
@@ -121,18 +119,15 @@ export const CountryCombobox = ({
               </PopoverTrigger>
             </div>
           </PopoverAnchor>
-          
-          <PopoverContent 
-            className="p-0" 
+
+          <PopoverContent
+            className="p-0"
             align="start"
             style={{ width: containerWidth }}
             sideOffset={4}
           >
             <Command>
-              <CommandInput 
-                placeholder="Search countries..." 
-                className="h-9" 
-              />
+              <CommandInput placeholder="Search countries..." className="h-9" />
               <CommandList>
                 <CommandEmpty>No country found.</CommandEmpty>
                 <CommandGroup>
@@ -167,4 +162,4 @@ export const CountryCombobox = ({
   );
 };
 
-export default CountryCombobox; 
+export default CountryCombobox;

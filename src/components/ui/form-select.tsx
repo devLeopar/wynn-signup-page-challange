@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface FormSelectProps {
   id: string;
@@ -17,6 +18,12 @@ interface FormSelectProps {
   placeholder?: string;
   options: { value: string; label: string }[];
   className?: string;
+  error?: string;
+  // React Hook Form props
+  value?: string;
+  onChange?: (value: string) => void;
+  onBlur?: () => void;
+  name?: string;
 }
 
 export const FormSelect = ({
@@ -26,6 +33,11 @@ export const FormSelect = ({
   placeholder,
   options,
   className,
+  error,
+  value,
+  onChange,
+  onBlur,
+  name,
 }: FormSelectProps) => {
   return (
     <div className={`space-y-2 ${className}`}>
@@ -37,8 +49,19 @@ export const FormSelect = ({
           </div>
         </div>
       </Label>
-      <Select>
-        <SelectTrigger id={id} className="border-[#E8E9E9] bg-white rounded-sm h-12 p-8 w-full">
+      <Select 
+        value={value} 
+        onValueChange={onChange}
+        name={name || id}
+      >
+        <SelectTrigger 
+          id={id} 
+          onBlur={onBlur}
+          className={cn(
+            "border-[#E8E9E9] bg-white rounded-sm h-12 p-8 w-full",
+            error && "border-red-500"
+          )}
+        >
           <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}...`} />
         </SelectTrigger>
         <SelectContent>
@@ -49,6 +72,7 @@ export const FormSelect = ({
           ))}
         </SelectContent>
       </Select>
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 };
