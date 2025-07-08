@@ -8,6 +8,7 @@ import Link from "next/link";
 import { FormInput } from "@/components/ui/form-input";
 import { FormSelect } from "@/components/ui/form-select";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { CountryCombobox } from "@/components/ui/country-combobox";
 
 const genderOptions = [
   { value: "male", label: "Male" },
@@ -16,23 +17,14 @@ const genderOptions = [
   { value: "prefer_not_to_say", label: "Prefer not to say" },
 ];
 
-const countries = [
-  { value: "ae", label: "United Arab Emirates" },
-  { value: "us", label: "United States" },
-  { value: "uk", label: "United Kingdom" },
-  { value: "ca", label: "Canada" },
-  { value: "au", label: "Australia" },
-  { value: "sa", label: "Saudi Arabia" },
-  { value: "qa", label: "Qatar" },
-  { value: "kw", label: "Kuwait" },
-  { value: "om", label: "Oman" },
-  { value: "bh", label: "Bahrain" },
-];
+// Removed static countries array - now using comprehensive country data from CountryCombobox
 
 export const SignupForm = () => {
   const [agreed, setAgreed] = useState(false);
   const [phoneValue, setPhoneValue] = useState<string>("");
   const [phoneError, setPhoneError] = useState<string | undefined>();
+  const [countryValue, setCountryValue] = useState<string>("");
+  const [countryError, setCountryError] = useState<string | undefined>();
 
   const handlePhoneChange = useCallback((value: string | undefined) => {
     const phoneStr = value || "";
@@ -45,6 +37,18 @@ export const SignupForm = () => {
       setPhoneError("Phone number is too short");
     } else {
       setPhoneError(undefined);
+    }
+  }, []);
+
+  const handleCountryChange = useCallback((value: string | undefined) => {
+    const countryStr = value || "";
+    setCountryValue(countryStr);
+    
+    // Basic validation
+    if (!countryStr) {
+      setCountryError("Residence country is required");
+    } else {
+      setCountryError(undefined);
     }
   }, []);
 
@@ -88,11 +92,13 @@ export const SignupForm = () => {
               options={genderOptions}
               placeholder="Select gender..."
             />
-            <FormSelect
+            <CountryCombobox
               id="country"
               label="Your Residence Country"
               required
-              options={countries}
+              value={countryValue}
+              onChange={handleCountryChange}
+              error={countryError}
               placeholder="Select residence country..."
             />
           </div>

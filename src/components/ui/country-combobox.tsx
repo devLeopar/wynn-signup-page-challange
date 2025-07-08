@@ -3,7 +3,6 @@
 import * as React from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -20,15 +19,13 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import "react-phone-number-input/style.css";
 import {
   Country,
   getCountries,
-  getCountryCallingCode,
 } from "react-phone-number-input";
 import { renderFlag, getCountryName } from "@/lib/country-utils";
 
-interface PhoneInputProps {
+interface CountryComboboxProps {
   id: string;
   label: string;
   required?: boolean;
@@ -37,25 +34,20 @@ interface PhoneInputProps {
   value?: string;
   onChange?: (value: string | undefined) => void;
   error?: string;
-  defaultCountry?: Country;
 }
 
-export const PhoneInput = ({
+export const CountryCombobox = ({
   id,
   label,
   required = false,
-  placeholder = "(___) - ___",
+  placeholder = "Select residence country...",
   className,
   value,
   onChange,
   error,
-  defaultCountry = "AE",
-}: PhoneInputProps) => {
-  const [country, setCountry] = React.useState<Country>(defaultCountry);
+}: CountryComboboxProps) => {
   const [open, setOpen] = React.useState(false);
-  const [containerWidth, setContainerWidth] = React.useState<
-    number | undefined
-  >();
+  const [containerWidth, setContainerWidth] = React.useState<number | undefined>();
   const countries = React.useMemo(() => getCountries(), []);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -66,17 +58,16 @@ export const PhoneInput = ({
     }
   }, [open]);
 
-  // Using utility functions from @/lib/country-utils
+  // Find selected country object
+  const selectedCountry = React.useMemo(() => {
+    if (!value) return null;
+    return countries.find(country => country === value) || null;
+  }, [value, countries]);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
+  const handleCountrySelect = (countryCode: string) => {
     if (onChange) {
-      onChange(newValue);
+      onChange(countryCode === value ? undefined : countryCode);
     }
-  };
-
-  const handleCountryChange = (newCountry: Country) => {
-    setCountry(newCountry);
     setOpen(false);
   };
 
@@ -95,71 +86,72 @@ export const PhoneInput = ({
           <PopoverAnchor asChild>
             <div
               ref={containerRef}
-              className="flex items-center h-12 p-8 border border-[#E8E9E9] rounded-sm bg-white overflow-hidden"
+              className={cn(
+                "flex items-center justify-between w-full h-12 p-8 border border-[#E8E9E9] rounded-sm bg-white",
+                error && "border-red-500"
+              )}
             >
-              {/* Country Selector */}
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-2 px-3 h-full hover:bg-gray-50 transition-colors"
+                  className={cn(
+                    "flex items-center justify-between w-full text-left bg-transparent border-0 p-0",
+                     "rounded-sm",
+                    !selectedCountry && "text-gray-500"
+                  )}
+                  aria-expanded={open}
+                  aria-haspopup="listbox"
+                  id={id}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-4">{renderFlag(country)}</div>
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  <div className="flex items-center gap-3">
+                    {selectedCountry && (
+                      <div className="w-6 h-4 flex-shrink-0">
+                        {renderFlag(selectedCountry as Country)}
+                      </div>
+                    )}
+                    <span className="flex-1 truncate">
+                      {selectedCountry 
+                        ? getCountryName(selectedCountry as Country)
+                        : placeholder
+                      }
+                    </span>
                   </div>
+                  <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
                 </button>
               </PopoverTrigger>
-
-              {/* Country Code */}
-              <div className="px-3 text-gray-700">
-                +{getCountryCallingCode(country)}
-              </div>
-
-              {/* Phone Input */}
-              <Input
-                id={id}
-                type="tel"
-                placeholder={placeholder}
-                value={value || ""}
-                onChange={handlePhoneChange}
-                className={cn(
-                  "flex-1 h-full border-none rounded-none p-3 shadow-none",
-                  "focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
-                  error && "text-red-500"
-                )}
-              />
             </div>
           </PopoverAnchor>
-
-          <PopoverContent
-            className="p-0"
+          
+          <PopoverContent 
+            className="p-0" 
             align="start"
             style={{ width: containerWidth }}
             sideOffset={4}
           >
             <Command>
-              <CommandInput placeholder="Search" className="h-9" />
+              <CommandInput 
+                placeholder="Search countries..." 
+                className="h-9" 
+              />
               <CommandList>
                 <CommandEmpty>No country found.</CommandEmpty>
                 <CommandGroup>
-                  <ScrollArea className="h-[200px]">
+                  <ScrollArea className="h-[300px]">
                     {countries.map((countryCode) => (
                       <CommandItem
                         key={countryCode}
                         value={getCountryName(countryCode as Country)}
-                        onSelect={() =>
-                          handleCountryChange(countryCode as Country)
-                        }
-                        className="flex items-center gap-2"
+                        onSelect={() => handleCountrySelect(countryCode)}
+                        className="flex items-center gap-3 cursor-pointer"
                       >
-                        <div className="mr-2 w-6 h-4">
+                        <div className="w-6 h-4 flex-shrink-0">
                           {renderFlag(countryCode as Country)}
                         </div>
                         <span className="flex-1">
                           {getCountryName(countryCode as Country)}
                         </span>
-                        {country === countryCode && (
-                          <Check className="h-4 w-4 text-[#7F56D9]" />
+                        {value === countryCode && (
+                          <Check className="h-4 w-4 text-[#7F56D9] flex-shrink-0" />
                         )}
                       </CommandItem>
                     ))}
@@ -175,4 +167,4 @@ export const PhoneInput = ({
   );
 };
 
-export default PhoneInput;
+export default CountryCombobox; 
