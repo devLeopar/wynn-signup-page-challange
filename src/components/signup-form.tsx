@@ -38,7 +38,7 @@ export const SignupForm = () => {
     defaultValues: {
       firstName: "",
       lastName: "",
-      gender: undefined,
+      gender: "" as (typeof validationGenderOptions)[number], // Empty string to prevent controlled/uncontrolled warning
       country: "",
       email: "",
       phone: "",

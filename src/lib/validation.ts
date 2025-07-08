@@ -27,8 +27,10 @@ export const step1Schema = z.object({
     .regex(/^[a-zA-Z\s'-]+$/, "Last name can only contain letters, spaces, hyphens, and apostrophes"),
 
   gender: z
-    .enum(genderOptions, {
-      errorMap: () => ({ message: "Please select a gender" }),
+    .string()
+    .min(1, "Please select a gender")
+    .refine((val) => genderOptions.includes(val as typeof genderOptions[number]), {
+      message: "Please select a valid gender option",
     }),
 
   country: z
