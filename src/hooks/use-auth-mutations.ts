@@ -1,8 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
-import { useSignupActions, useApiStatesState } from '@/store/signup-store';
+import { useSignupActions } from '@/store/signup-store';
 import { requestOtp, verifyOtpAndRegister, ApiError } from '@/lib/api';
 import type { RequestOtpRequest } from '@/lib/api';
-import { useEffect } from 'react';
 
 // Hook for requesting OTP
 export const useRequestOtp = () => {
@@ -20,8 +19,7 @@ export const useRequestOtp = () => {
       // Store the selected OTP method
       actions.setSelectedOtpMethod(variables.method);
       
-      // Reset OTP states
-      actions.setOtpRequested(false);
+      // Reset verification state (keep otpRequested as is for resend)
       actions.setOtpVerified(false);
     },
     onSuccess: (data) => {
@@ -29,8 +27,8 @@ export const useRequestOtp = () => {
       actions.setOtpRequested(true);
       actions.setLoadingState('requestingOtp', false);
       
-      // Start 60-second timer
-      actions.startOtpTimer();
+      // Set timestamp for resend logic
+      actions.setOtpRequestTimestamp(Date.now());
       
       console.log('OTP request successful:', data);
     },
@@ -39,12 +37,22 @@ export const useRequestOtp = () => {
       actions.setLoadingState('requestingOtp', false);
       
       if (error instanceof ApiError) {
+        // Show user-friendly error message
         actions.setApiError('otp', error.message);
+        
+        // Log detailed error for debugging
+        console.error('OTP request failed - API Error:', {
+          message: error.message,
+          status: error.status,
+          errorCode: error.errorCode
+        });
       } else {
+        // Generic error for UI
         actions.setApiError('otp', 'Failed to request OTP. Please try again.');
+        
+        // Log full error for debugging
+        console.error('OTP request failed - Unknown Error:', error);
       }
-      
-      console.error('OTP request failed:', error);
     },
     onSettled: () => {
       // Always reset loading state
@@ -80,6 +88,12 @@ export const useVerifyOtpAndRegister = () => {
         // Set submit status to success
         actions.setSubmitStatus('success');
         
+        // Navigate to step 3 (success page)
+        actions.setStep(3);
+        
+        // Navigate to success page (step 4)
+        actions.setStep(4);
+        
         console.log('OTP verification and registration successful:', data);
       } else {
         // Handle unexpected success response without success flag
@@ -98,7 +112,7 @@ export const useVerifyOtpAndRegister = () => {
       actions.setSubmitStatus('error');
       
       if (error instanceof ApiError) {
-        // Provide user-friendly error messages
+        // Provide user-friendly error messages for UI display
         if (error.errorCode === 'INVALID_OTP') {
           actions.setApiError('verify', 'Invalid OTP code. Please check and try again.');
         } else if (error.status === 400) {
@@ -106,11 +120,20 @@ export const useVerifyOtpAndRegister = () => {
         } else {
           actions.setApiError('verify', error.message);
         }
+        
+        // Log detailed error for debugging
+        console.error('OTP verification failed - API Error:', {
+          message: error.message,
+          status: error.status,
+          errorCode: error.errorCode
+        });
       } else {
+        // Generic error for UI
         actions.setApiError('verify', 'Verification failed. Please try again.');
+        
+        // Log full error for debugging
+        console.error('OTP verification failed - Unknown Error:', error);
       }
-      
-      console.error('OTP verification failed:', error);
     },
     onSettled: () => {
       // Always reset loading states
@@ -126,11 +149,9 @@ export const useResendOtp = () => {
   const actions = useSignupActions();
   
   const resendOtp = (data: RequestOtpRequest) => {
-    // Reset OTP states before resending
-    actions.setOtpRequested(false);
+    // Reset verification states but keep otpRequested true
     actions.setOtpVerified(false);
     actions.clearApiErrors();
-    actions.stopOtpTimer();
     
     // Trigger the mutation
     requestOtpMutation.mutate(data);
@@ -143,38 +164,7 @@ export const useResendOtp = () => {
   };
 };
 
-// Custom hook for OTP countdown timer (60 seconds)
-export const useOtpTimer = () => {
-  const apiStates = useApiStatesState();
-  const actions = useSignupActions();
 
-  // Countdown logic - runs when timer is active
-  useEffect(() => {
-    if (!apiStates.otpTimerActive || apiStates.otpTimeLeft <= 0) return;
-
-    const interval = setInterval(() => {
-      const newTimeLeft = apiStates.otpTimeLeft - 1;
-      actions.setOtpTimeLeft(newTimeLeft);
-      
-      if (newTimeLeft <= 0) {
-        actions.setOtpTimerActive(false);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [apiStates.otpTimerActive, apiStates.otpTimeLeft, actions]);
-
-  return {
-    timeLeft: apiStates.otpTimeLeft,
-    isActive: apiStates.otpTimerActive,
-    canResend: apiStates.canResendOtp,
-    formatTime: () => {
-      const minutes = Math.floor(apiStates.otpTimeLeft / 60);
-      const seconds = apiStates.otpTimeLeft % 60;
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    },
-  };
-};
 
 // Custom hook to get mutation states
 export const useAuthMutationStates = () => {

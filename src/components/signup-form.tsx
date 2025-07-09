@@ -10,11 +10,15 @@ import { FormInput } from "@/components/ui/form-input";
 import { FormSelect } from "@/components/ui/form-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { CountryCombobox } from "@/components/ui/country-combobox";
+import { OtpMethodSelection } from "@/components/otp-method-selection";
+import { OtpVerification } from "@/components/otp-verification";
+import { RegistrationHeader } from "@/components/ui/registration-header";
 import { 
   step1Schema, 
   type Step1FormData, 
   genderOptions as validationGenderOptions 
 } from "@/lib/validation";
+import { useSignupStore, useSignupActions, useDataState, useApiStatesState } from "@/store/signup-store";
 
 // Convert validation gender options to component format
 const genderOptions = validationGenderOptions.map((value) => ({
@@ -26,7 +30,10 @@ const genderOptions = validationGenderOptions.map((value) => ({
 
 // Removed static countries array - now using comprehensive country data from CountryCombobox
 
-export const SignupForm = () => {
+const Step1Form = () => {
+  const actions = useSignupActions();
+  const { step1Data } = useDataState();
+
   const {
     register,
     handleSubmit,
@@ -35,7 +42,7 @@ export const SignupForm = () => {
   } = useForm<Step1FormData>({
     resolver: zodResolver(step1Schema),
     mode: "onChange", // Validate on each change
-    defaultValues: {
+    defaultValues: step1Data.firstName ? step1Data : {
       firstName: "",
       lastName: "",
       gender: "" as (typeof validationGenderOptions)[number], // Empty string to prevent controlled/uncontrolled warning
@@ -47,22 +54,16 @@ export const SignupForm = () => {
   });
   
   const onSubmit = (data: Step1FormData) => {
-    console.log("Form submitted:", data);
-    // TODO: Handle form submission
+    // Update store with form data
+    actions.updateStep1Data(data);
+    // Navigate to step 2
+    actions.setStep(2);
   };
 
   return (
     <div className="max-w-3xl mx-auto p-8 rounded-md">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-4xl font-serif text-[#1A1A1A]">Registration</h1>
-          <div className="text-2xl text-gray-600">Step 1 of 3</div>
-        </div>
-        <p className="text-gray-600 text-lg">
-          Please enter below information to create your account.
-        </p>
-      </div>
+      <RegistrationHeader />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
         {/* Personal Info Section */}
@@ -191,7 +192,7 @@ export const SignupForm = () => {
         <div className="flex justify-start mt-8">
           <Button
             type="submit"
-            className="bg-[#006F5F] hover:bg-[#005a4d] text-white px-12 py-3 h-auto text-lg uppercase"
+            className="bg-[#006F5F] hover:bg-[#005a4d] text-white px-16 py-4 h-auto text-lg uppercase transition-colors duration-200"
             disabled={!isValid}
           >
             Next
@@ -200,6 +201,24 @@ export const SignupForm = () => {
       </form>
     </div>
   );
+};
+
+export const SignupForm = () => {
+  const { currentStep } = useSignupStore((state) => state.navigation);
+  const { otpRequested } = useApiStatesState();
+
+  // Render the appropriate step component
+  switch (currentStep) {
+    case 1:
+      return <Step1Form />;
+    case 2:
+      // If OTP is requested, show verification, otherwise show method selection
+      return otpRequested ? <OtpVerification /> : <OtpMethodSelection />;
+    case 3:
+      return <OtpVerification />;
+    default:
+      return <Step1Form />;
+  }
 };
 
 export default SignupForm; 

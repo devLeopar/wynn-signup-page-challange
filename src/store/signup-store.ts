@@ -45,8 +45,6 @@ interface ApiStatesSlice {
   selectedOtpMethod: 'email' | 'phone' | null;
   otpRequestTimestamp: number | null;
   canResendOtp: boolean;
-  otpTimeLeft: number;
-  otpTimerActive: boolean;
 }
 
 // Actions interface
@@ -83,10 +81,6 @@ interface SignupActions {
   setOtpRequestTimestamp: (timestamp: number | null) => void;
   updateCanResendOtp: () => void;
   resetApiStates: () => void;
-  setOtpTimeLeft: (seconds: number) => void;
-  setOtpTimerActive: (active: boolean) => void;
-  startOtpTimer: () => void;
-  stopOtpTimer: () => void;
 
   // Environment actions
   setApiBaseUrl: (url: string) => void;
@@ -139,8 +133,6 @@ const initialApiStatesState: ApiStatesSlice = {
   selectedOtpMethod: null,
   otpRequestTimestamp: null,
   canResendOtp: false,
-  otpTimeLeft: 0,
-  otpTimerActive: false,
 };
 
 const initialEnvironmentState: EnvironmentConfig = {
@@ -335,36 +327,7 @@ export const useSignupStore = create<SignupStore>()(
             });
           },
 
-          // Timer actions
-          setOtpTimeLeft: (seconds: number) => {
-            set((state) => {
-              state.apiStates.otpTimeLeft = Math.max(0, seconds);
-              state.apiStates.canResendOtp = seconds === 0;
-            });
-          },
 
-          setOtpTimerActive: (active: boolean) => {
-            set((state) => {
-              state.apiStates.otpTimerActive = active;
-            });
-          },
-
-          startOtpTimer: () => {
-            set((state) => {
-              state.apiStates.otpTimeLeft = 60;
-              state.apiStates.otpTimerActive = true;
-              state.apiStates.canResendOtp = false;
-              state.apiStates.otpRequestTimestamp = Date.now();
-            });
-          },
-
-          stopOtpTimer: () => {
-            set((state) => {
-              state.apiStates.otpTimerActive = false;
-              state.apiStates.otpTimeLeft = 0;
-              state.apiStates.canResendOtp = true;
-            });
-          },
 
           // Environment actions
           setApiBaseUrl: (url: string) => {
@@ -485,11 +448,10 @@ export const useIsAnyLoading = () => {
 export const useCanResendOtp = () => {
   return useSignupStore((state) => {
     const { otpRequestTimestamp, canResendOtp } = state.apiStates;
-    if (!otpRequestTimestamp) return false;
+    if (!otpRequestTimestamp) return true;
     
-    // Check if 60 seconds have passed
-    const timePassed = Date.now() - otpRequestTimestamp;
-    return canResendOtp || timePassed > 60000;
+    // Allow immediate resend for demo purposes
+    return canResendOtp;
   });
 };
 
