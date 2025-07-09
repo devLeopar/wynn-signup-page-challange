@@ -33,7 +33,100 @@ interface CountryComboboxProps {
   error?: string;
 }
 
-export const CountryCombobox = ({
+// Pre-process countries data once at module level for maximum performance
+const COUNTRIES_DATA = (() => {
+  const countries = getCountries();
+  return countries.map((countryCode) => ({
+    code: countryCode,
+    name: getCountryName(countryCode as Country),
+    flag: renderFlag(countryCode as Country),
+  }));
+})();
+
+// Memoized country item component for optimal rendering
+const CountryItem = React.memo(({ 
+  country, 
+  isSelected, 
+  onSelect 
+}: { 
+  country: typeof COUNTRIES_DATA[0]; 
+  isSelected: boolean; 
+  onSelect: (code: string) => void; 
+}) => (
+  <CommandItem
+    key={country.code}
+    value={country.name}
+    onSelect={() => onSelect(country.code)}
+    className="flex items-center gap-3 cursor-pointer"
+  >
+    <div className="w-6 h-4 flex-shrink-0">
+      {country.flag}
+    </div>
+    <span className="flex-1">
+      {country.name}
+    </span>
+    {isSelected && (
+      <Check className="h-4 w-4 text-[#7F56D9] flex-shrink-0" />
+    )}
+  </CommandItem>
+));
+
+CountryItem.displayName = "CountryItem";
+
+// Virtualized country list for better performance with large datasets
+const VirtualizedCountryList = React.memo(({ 
+  countries, 
+  selectedValue, 
+  onSelect 
+}: { 
+  countries: typeof COUNTRIES_DATA; 
+  selectedValue?: string; 
+  onSelect: (code: string) => void; 
+}) => {
+  const [visibleRange, setVisibleRange] = React.useState({ start: 0, end: 50 });
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const itemHeight = 40; // Approximate height per item
+    const containerHeight = target.clientHeight;
+    const scrollTop = target.scrollTop;
+    
+    const start = Math.floor(scrollTop / itemHeight);
+    const end = Math.min(start + Math.ceil(containerHeight / itemHeight) + 10, countries.length);
+    
+    setVisibleRange({ start, end });
+  }, [countries.length]);
+
+  const visibleCountries = React.useMemo(() => {
+    return countries.slice(visibleRange.start, visibleRange.end);
+  }, [countries, visibleRange]);
+
+  return (
+    <ScrollArea 
+      className="h-[300px]" 
+      ref={scrollAreaRef}
+      onScrollCapture={handleScroll}
+    >
+      <div style={{ height: countries.length * 40 }}>
+        <div style={{ transform: `translateY(${visibleRange.start * 40}px)` }}>
+          {visibleCountries.map((country) => (
+            <CountryItem
+              key={country.code}
+              country={country}
+              isSelected={selectedValue === country.code}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      </div>
+    </ScrollArea>
+  );
+});
+
+VirtualizedCountryList.displayName = "VirtualizedCountryList";
+
+export const CountryCombobox = React.memo(({
   id,
   label,
   required = false,
@@ -44,32 +137,53 @@ export const CountryCombobox = ({
   error,
 }: CountryComboboxProps) => {
   const [open, setOpen] = React.useState(false);
-  const [containerWidth, setContainerWidth] = React.useState<
-    number | undefined
-  >();
-  const countries = React.useMemo(() => getCountries(), []);
+  const [containerWidth, setContainerWidth] = React.useState<number | undefined>();
+  const [searchTerm, setSearchTerm] = React.useState("");
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  // Update container width when component mounts or open state changes
+  // Optimized container width calculation with debouncing
   React.useLayoutEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && open) {
       setContainerWidth(containerRef.current.offsetWidth);
     }
   }, [open]);
 
-  // Find selected country object
+  // Find selected country with memoization
   const selectedCountry = React.useMemo(() => {
     if (!value) return null;
-    return countries.find((country) => country === value) || null;
-  }, [value, countries]);
+    return COUNTRIES_DATA.find((country) => country.code === value) || null;
+  }, [value]);
 
-  const handleCountrySelect = (countryCode: string) => {
+  // Filtered countries based on search with memoization
+  const filteredCountries = React.useMemo(() => {
+    if (!searchTerm) return COUNTRIES_DATA;
+    const term = searchTerm.toLowerCase();
+    return COUNTRIES_DATA.filter((country) =>
+      country.name.toLowerCase().includes(term) ||
+      country.code.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
+  // Optimized handlers with useCallback
+  const handleCountrySelect = React.useCallback((countryCode: string) => {
     if (onChange) {
       onChange(countryCode === value ? undefined : countryCode);
     }
     setOpen(false);
-  };
-  // TODO: Onclick takes too much time to open the popover will take a look at it
+    setSearchTerm(""); // Reset search on selection
+  }, [onChange, value]);
+
+  const handleOpenChange = React.useCallback((newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setSearchTerm(""); // Reset search when closing
+    }
+  }, []);
+
+  const handleSearchChange = React.useCallback((search: string) => {
+    setSearchTerm(search);
+  }, []);
+
   return (
     <div className={`space-y-2 ${className}`}>
       <Label htmlFor={id} className="flex items-center text-base gap-0">
@@ -81,7 +195,7 @@ export const CountryCombobox = ({
         </div>
       </Label>
       <div className="relative">
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={handleOpenChange}>
           <PopoverAnchor asChild>
             <div
               ref={containerRef}
@@ -105,13 +219,11 @@ export const CountryCombobox = ({
                   <div className="flex items-center gap-3">
                     {selectedCountry && (
                       <div className="w-6 h-4 flex-shrink-0">
-                        {renderFlag(selectedCountry as Country)}
+                        {selectedCountry.flag}
                       </div>
                     )}
                     <span className="flex-1 truncate">
-                      {selectedCountry
-                        ? getCountryName(selectedCountry as Country)
-                        : placeholder}
+                      {selectedCountry ? selectedCountry.name : placeholder}
                     </span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
@@ -120,46 +232,41 @@ export const CountryCombobox = ({
             </div>
           </PopoverAnchor>
 
-          <PopoverContent
-            className="p-0"
-            align="start"
-            style={{ width: containerWidth }}
-            sideOffset={4}
-          >
-            <Command>
-              <CommandInput placeholder="Search countries..." className="h-9" />
-              <CommandList>
-                <CommandEmpty>No country found.</CommandEmpty>
-                <CommandGroup>
-                  <ScrollArea className="h-[300px]">
-                    {countries.map((countryCode) => (
-                      <CommandItem
-                        key={countryCode}
-                        value={getCountryName(countryCode as Country)}
-                        onSelect={() => handleCountrySelect(countryCode)}
-                        className="flex items-center gap-3 cursor-pointer"
-                      >
-                        <div className="w-6 h-4 flex-shrink-0">
-                          {renderFlag(countryCode as Country)}
-                        </div>
-                        <span className="flex-1">
-                          {getCountryName(countryCode as Country)}
-                        </span>
-                        {value === countryCode && (
-                          <Check className="h-4 w-4 text-[#7F56D9] flex-shrink-0" />
-                        )}
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
+          {/* Lazy load popover content only when open */}
+          {open && (
+            <PopoverContent
+              className="p-0"
+              align="start"
+              style={{ width: containerWidth }}
+              sideOffset={4}
+            >
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Search countries..." 
+                  className="h-9"
+                  value={searchTerm}
+                  onValueChange={handleSearchChange}
+                />
+                <CommandList>
+                  <CommandEmpty>No country found.</CommandEmpty>
+                  <CommandGroup>
+                    <VirtualizedCountryList
+                      countries={filteredCountries}
+                      selectedValue={value}
+                      onSelect={handleCountrySelect}
+                    />
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          )}
         </Popover>
         {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
       </div>
     </div>
   );
-};
+});
+
+CountryCombobox.displayName = "CountryCombobox";
 
 export default CountryCombobox;

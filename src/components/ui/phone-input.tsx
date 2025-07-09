@@ -40,7 +40,101 @@ interface PhoneInputProps {
   defaultCountry?: Country;
 }
 
-export const PhoneInput = ({
+// Pre-process countries data once at module level for maximum performance
+const PHONE_COUNTRIES_DATA = (() => {
+  const countries = getCountries();
+  return countries.map((countryCode) => ({
+    code: countryCode,
+    name: getCountryName(countryCode as Country),
+    flag: renderFlag(countryCode as Country),
+    callingCode: getCountryCallingCode(countryCode),
+  }));
+})();
+
+// Memoized country item component for optimal rendering
+const PhoneCountryItem = React.memo(({ 
+  country, 
+  isSelected, 
+  onSelect 
+}: { 
+  country: typeof PHONE_COUNTRIES_DATA[0]; 
+  isSelected: boolean; 
+  onSelect: (code: string) => void; 
+}) => (
+  <CommandItem
+    key={country.code}
+    value={country.name}
+    onSelect={() => onSelect(country.code)}
+    className="flex items-center gap-2"
+  >
+    <div className="mr-2 w-6 h-4">
+      {country.flag}
+    </div>
+    <span className="flex-1">
+      {country.name}
+    </span>
+    {isSelected && (
+      <Check className="h-4 w-4 text-[#7F56D9]" />
+    )}
+  </CommandItem>
+));
+
+PhoneCountryItem.displayName = "PhoneCountryItem";
+
+// Virtualized country list for better performance with large datasets
+const VirtualizedPhoneCountryList = React.memo(({ 
+  countries, 
+  selectedCountry, 
+  onSelect 
+}: { 
+  countries: typeof PHONE_COUNTRIES_DATA; 
+  selectedCountry: Country; 
+  onSelect: (code: string) => void; 
+}) => {
+  const [visibleRange, setVisibleRange] = React.useState({ start: 0, end: 50 });
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const itemHeight = 40; // Approximate height per item
+    const containerHeight = target.clientHeight;
+    const scrollTop = target.scrollTop;
+    
+    const start = Math.floor(scrollTop / itemHeight);
+    const end = Math.min(start + Math.ceil(containerHeight / itemHeight) + 10, countries.length);
+    
+    setVisibleRange({ start, end });
+  }, [countries.length]);
+
+  const visibleCountries = React.useMemo(() => {
+    return countries.slice(visibleRange.start, visibleRange.end);
+  }, [countries, visibleRange]);
+
+  return (
+    <ScrollArea 
+      className="h-[200px]" 
+      ref={scrollAreaRef}
+      onScrollCapture={handleScroll}
+    >
+      <div style={{ height: countries.length * 40 }}>
+        <div style={{ transform: `translateY(${visibleRange.start * 40}px)` }}>
+          {visibleCountries.map((country) => (
+            <PhoneCountryItem
+              key={country.code}
+              country={country}
+              isSelected={selectedCountry === country.code}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      </div>
+    </ScrollArea>
+  );
+});
+
+VirtualizedPhoneCountryList.displayName = "VirtualizedPhoneCountryList";
+
+export const PhoneInput = React.memo(({
   id,
   label,
   required = false,
@@ -53,34 +147,53 @@ export const PhoneInput = ({
 }: PhoneInputProps) => {
   const [country, setCountry] = React.useState<Country>(defaultCountry);
   const [open, setOpen] = React.useState(false);
-  const [containerWidth, setContainerWidth] = React.useState<
-    number | undefined
-  >();
-  const countries = React.useMemo(() => getCountries(), []);
+  const [containerWidth, setContainerWidth] = React.useState<number | undefined>();
+  const [searchTerm, setSearchTerm] = React.useState("");
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  // Update container width when component mounts or open state changes
+  // Optimized container width calculation
   React.useLayoutEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && open) {
       setContainerWidth(containerRef.current.offsetWidth);
     }
   }, [open]);
 
-  // Using utility functions from @/lib/country-utils
+  // Filtered countries based on search with memoization
+  const filteredCountries = React.useMemo(() => {
+    if (!searchTerm) return PHONE_COUNTRIES_DATA;
+    const term = searchTerm.toLowerCase();
+    return PHONE_COUNTRIES_DATA.filter((countryData) =>
+      countryData.name.toLowerCase().includes(term) ||
+      countryData.code.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Memoized country calling code
+  const countryCallingCode = React.useMemo(() => {
+    return getCountryCallingCode(country);
+  }, [country]);
+
+  // Optimized handlers with useCallback
+  const handlePhoneChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const phoneNumber = e.target.value;
-    const countryCode = getCountryCallingCode(country);
-    // Combine country code with phone number for complete phone string
-    const fullPhoneNumber = phoneNumber ? `+${countryCode}${phoneNumber}` : "";
+    const fullPhoneNumber = phoneNumber ? `+${countryCallingCode}${phoneNumber}` : "";
     if (onChange) {
       onChange(fullPhoneNumber);
     }
-  };
+  }, [countryCallingCode, onChange]);
 
-  const handleCountryChange = (newCountry: Country) => {
+  // Helper function to extract phone number without country code
+  const extractPhoneNumber = React.useCallback((fullPhone: string) => {
+    if (!fullPhone.startsWith('+')) return fullPhone;
+    const countryCode = getCountryCallingCode(country);
+    return fullPhone.replace(`+${countryCode}`, '');
+  }, [country]);
+
+  const handleCountryChange = React.useCallback((countryCode: string) => {
+    const newCountry = countryCode as Country;
     setCountry(newCountry);
     setOpen(false);
+    setSearchTerm(""); // Reset search on selection
     
     // Update phone number with new country code if there's a current value
     if (value && onChange) {
@@ -91,14 +204,23 @@ export const PhoneInput = ({
         onChange(newFullPhoneNumber);
       }
     }
-  };
+  }, [value, onChange, extractPhoneNumber]);
 
-  // Helper function to extract phone number without country code
-  const extractPhoneNumber = (fullPhone: string) => {
-    if (!fullPhone.startsWith('+')) return fullPhone;
-    const countryCode = getCountryCallingCode(country);
-    return fullPhone.replace(`+${countryCode}`, '');
-  };
+  const handleOpenChange = React.useCallback((newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setSearchTerm(""); // Reset search when closing
+    }
+  }, []);
+
+  const handleSearchChange = React.useCallback((search: string) => {
+    setSearchTerm(search);
+  }, []);
+
+  // Memoized flag component
+  const countryFlag = React.useMemo(() => {
+    return renderFlag(country);
+  }, [country]);
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -111,7 +233,7 @@ export const PhoneInput = ({
         </div>
       </Label>
       <div className="relative">
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={handleOpenChange}>
           <PopoverAnchor asChild>
             <div
               ref={containerRef}
@@ -124,7 +246,7 @@ export const PhoneInput = ({
                   className="flex items-center gap-2 px-3 h-full hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-4">{renderFlag(country)}</div>
+                    <div className="w-6 h-4">{countryFlag}</div>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </div>
                 </button>
@@ -132,7 +254,7 @@ export const PhoneInput = ({
 
               {/* Country Code */}
               <div className="px-3 text-gray-700">
-                +{getCountryCallingCode(country)}
+                +{countryCallingCode}
               </div>
 
               {/* Phone Input */}
@@ -151,48 +273,41 @@ export const PhoneInput = ({
             </div>
           </PopoverAnchor>
 
-          <PopoverContent
-            className="p-0"
-            align="start"
-            style={{ width: containerWidth }}
-            sideOffset={4}
-          >
-            <Command>
-              <CommandInput placeholder="Search" className="h-9" />
-              <CommandList>
-                <CommandEmpty>No country found.</CommandEmpty>
-                <CommandGroup>
-                  <ScrollArea className="h-[200px]">
-                    {countries.map((countryCode) => (
-                      <CommandItem
-                        key={countryCode}
-                        value={getCountryName(countryCode as Country)}
-                        onSelect={() =>
-                          handleCountryChange(countryCode as Country)
-                        }
-                        className="flex items-center gap-2"
-                      >
-                        <div className="mr-2 w-6 h-4">
-                          {renderFlag(countryCode as Country)}
-                        </div>
-                        <span className="flex-1">
-                          {getCountryName(countryCode as Country)}
-                        </span>
-                        {country === countryCode && (
-                          <Check className="h-4 w-4 text-[#7F56D9]" />
-                        )}
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
+          {/* Lazy load popover content only when open */}
+          {open && (
+            <PopoverContent
+              className="p-0"
+              align="start"
+              style={{ width: containerWidth }}
+              sideOffset={4}
+            >
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Search" 
+                  className="h-9" 
+                  value={searchTerm}
+                  onValueChange={handleSearchChange}
+                />
+                <CommandList>
+                  <CommandEmpty>No country found.</CommandEmpty>
+                  <CommandGroup>
+                    <VirtualizedPhoneCountryList
+                      countries={filteredCountries}
+                      selectedCountry={country}
+                      onSelect={handleCountryChange}
+                    />
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          )}
         </Popover>
         {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
       </div>
     </div>
   );
-};
+});
+
+PhoneInput.displayName = "PhoneInput";
 
 export default PhoneInput;
