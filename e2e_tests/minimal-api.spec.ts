@@ -88,4 +88,81 @@ test.describe('Minimal Working E2E Tests', () => {
     
     console.log('✅ LocalStorage test completed');
   });
+
+  test('API Health Check - Test endpoint', async ({ page }) => {
+    const response = await page.request.get('https://demo3975834.mockable.io/test');
+    
+    console.log(`🔍 Health Check Status: ${response.status()}`);
+    console.log(`🌐 Health Check URL: ${response.url()}`);
+    
+    expect(response.status()).toBe(200);
+    
+    console.log('✅ API Health Check completed');
+  });
+
+  test('API Request OTP - Real endpoint test', async ({ page }) => {
+    const startTime = Date.now();
+    
+    const response = await page.request.post('https://demo3975834.mockable.io/request-otp', {
+      data: {
+        email: 'john.doe@example.com',
+        phone: '+971501234567',
+        method: 'email'
+      }
+    });
+    
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    console.log(`🚀 Request OTP Response Time: ${responseTime}ms`);
+    console.log(`📊 Status: ${response.status()}`);
+    console.log(`🌐 URL: ${response.url()}`);
+    
+    const responseBody = await response.json();
+    console.log(`📦 Response Body:`, responseBody);
+    
+    expect(response.status()).toBe(200);
+    expect(responseBody.success).toBe(true);
+    expect(responseBody.message).toBe('OTP sent successfully');
+    expect(responseBody.timestamp).toBeTruthy();
+    expect(responseTime).toBeLessThan(10000);
+    
+    console.log('✅ Request OTP API test completed');
+  });
+
+  test('API Verify OTP - Real endpoint test', async ({ page }) => {
+    const startTime = Date.now();
+    
+    const response = await page.request.post('https://demo3975834.mockable.io/verify-otp', {
+      data: {
+        email: 'john.doe@example.com',
+        otp: '1234',
+        userData: {
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          phone: '+971501234567',
+          gender: 'male',
+          country: 'AE'
+        }
+      }
+    });
+    
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    console.log(`🚀 Verify OTP Response Time: ${responseTime}ms`);
+    console.log(`📊 Status: ${response.status()}`);
+    console.log(`🌐 URL: ${response.url()}`);
+    
+    const responseBody = await response.json();
+    console.log(`📦 Response Body:`, responseBody);
+    
+    expect(response.status()).toBe(200);
+    expect(responseBody.success).toBe(true);
+    expect(responseBody.message).toBe('Registration completed successfully');
+    expect(responseTime).toBeLessThan(10000);
+    
+    console.log('✅ Verify OTP API test completed');
+  });
 }); 
