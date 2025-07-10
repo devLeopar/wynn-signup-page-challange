@@ -57,6 +57,7 @@ export const FormSelect = ({
         <SelectTrigger 
           id={id} 
           onBlur={onBlur}
+          data-testid={`${id}-select-trigger`}
           className={cn(
             "border-[#E8E9E9] bg-white rounded-sm h-12 p-8 w-full",
             error && "border-red-500"
@@ -64,9 +65,13 @@ export const FormSelect = ({
         >
           <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}...`} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent data-testid={`${id}-select-content`}>
           {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem 
+              key={option.value} 
+              value={option.value}
+              data-testid={`${id}-option-${option.value}`}
+            >
               {option.label}
             </SelectItem>
           ))}
