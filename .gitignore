@@ -49,3 +49,10 @@ Handover_File.md
 Handover_Prompt.md
 Manager_Handover_File.md
 Manager_Handover_Prompt.md
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
