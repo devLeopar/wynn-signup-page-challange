@@ -66,7 +66,7 @@ const CountryItem = React.memo(({
       {country.name}
     </span>
     {isSelected && (
-      <Check className="h-4 w-4 text-[#7F56D9] flex-shrink-0" />
+      <Check className="h-4 w-4 text-[#7F56D9] flex-shrink-0" data-testid="check-icon" />
     )}
   </CommandItem>
 ));
@@ -185,12 +185,12 @@ export const CountryCombobox = React.memo(({
   }, []);
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 ${className}`} data-testid="country-combobox">
       <Label htmlFor={id} className="flex items-center text-base gap-0">
         {label} {required && <span className="text-[#5A3A27]">*</span>}
         <div className="ml-auto">
           <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-500 text-xs font-bold">i</span>
+            <span className="text-gray-500 text-xs font-bold" data-testid="info-icon">i</span>
           </div>
         </div>
       </Label>
@@ -203,6 +203,7 @@ export const CountryCombobox = React.memo(({
                 "flex items-center justify-between w-full h-12 p-8 border border-[#E8E9E9] rounded-sm bg-white",
                 error && "border-red-500"
               )}
+              data-testid="country-combobox-container"
             >
               <PopoverTrigger asChild>
                 <button
@@ -215,18 +216,19 @@ export const CountryCombobox = React.memo(({
                   aria-expanded={open}
                   aria-haspopup="listbox"
                   id={id}
+                  data-testid="country-combobox-trigger"
                 >
                   <div className="flex items-center gap-3">
                     {selectedCountry && (
-                      <div className="w-6 h-4 flex-shrink-0">
+                      <div className="w-6 h-4 flex-shrink-0" data-testid="selected-country-flag">
                         {selectedCountry.flag}
                       </div>
                     )}
-                    <span className="flex-1 truncate">
+                    <span className="flex-1 truncate" data-testid="selected-country-text">
                       {selectedCountry ? selectedCountry.name : placeholder}
                     </span>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                  <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" data-testid="chevron-down" />
                 </button>
               </PopoverTrigger>
             </div>
@@ -246,6 +248,7 @@ export const CountryCombobox = React.memo(({
                   className="h-9"
                   value={searchTerm}
                   onValueChange={handleSearchChange}
+                  data-testid="country-search-input"
                 />
                 <CommandList>
                   <CommandEmpty>No country found.</CommandEmpty>
