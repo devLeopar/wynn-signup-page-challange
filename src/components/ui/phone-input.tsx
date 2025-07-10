@@ -74,7 +74,7 @@ const PhoneCountryItem = React.memo(({
       {country.name}
     </span>
     {isSelected && (
-      <Check className="h-4 w-4 text-[#7F56D9]" />
+      <Check className="h-4 w-4 text-[#7F56D9]" data-testid="phone-check-icon" />
     )}
   </CommandItem>
 ));
@@ -223,12 +223,12 @@ export const PhoneInput = React.memo(({
   }, [country]);
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 ${className}`} data-testid="phone-input">
       <Label htmlFor={id} className="flex items-center text-base gap-0">
         {label} {required && <span className="text-[#5A3A27]">*</span>}
         <div className="ml-auto">
           <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
-            <span className="text-gray-500 text-xs font-bold">i</span>
+            <span className="text-gray-500 text-xs font-bold" data-testid="phone-info-icon">i</span>
           </div>
         </div>
       </Label>
@@ -238,22 +238,24 @@ export const PhoneInput = React.memo(({
             <div
               ref={containerRef}
               className="flex items-center h-12 p-8 border border-[#E8E9E9] rounded-sm bg-white overflow-hidden"
+              data-testid="phone-input-container"
             >
               {/* Country Selector */}
               <PopoverTrigger asChild>
                 <button
                   type="button"
                   className="flex items-center gap-2 px-3 h-full hover:bg-gray-50 transition-colors"
+                  data-testid="phone-country-selector"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-4">{countryFlag}</div>
-                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                    <div className="w-6 h-4" data-testid="phone-country-flag">{countryFlag}</div>
+                    <ChevronDown className="h-4 w-4 text-gray-500" data-testid="phone-chevron-down" />
                   </div>
                 </button>
               </PopoverTrigger>
 
               {/* Country Code */}
-              <div className="px-3 text-gray-700">
+              <div className="px-3 text-gray-700" data-testid="phone-country-code">
                 +{countryCallingCode}
               </div>
 
@@ -264,6 +266,7 @@ export const PhoneInput = React.memo(({
                 placeholder={placeholder}
                 value={extractPhoneNumber(value || "")}
                 onChange={handlePhoneChange}
+                data-testid="phone-number-input"
                 className={cn(
                   "flex-1 h-full border-none rounded-none p-3 shadow-none",
                   "focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-offset-0",
@@ -287,6 +290,7 @@ export const PhoneInput = React.memo(({
                   className="h-9" 
                   value={searchTerm}
                   onValueChange={handleSearchChange}
+                  data-testid="phone-country-search"
                 />
                 <CommandList>
                   <CommandEmpty>No country found.</CommandEmpty>

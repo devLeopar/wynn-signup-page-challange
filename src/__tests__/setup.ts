@@ -79,6 +79,9 @@ Object.defineProperty(window, 'scrollTo', {
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = vi.fn()
 
+// Mock CSS imports
+vi.mock('react-phone-number-input/style.css', () => ({}))
+
 // Suppress console warnings during tests
 const originalConsoleWarn = console.warn
 console.warn = (...args: unknown[]) => {
