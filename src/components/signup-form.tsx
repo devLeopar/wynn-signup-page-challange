@@ -61,11 +61,11 @@ const Step1Form = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-8 rounded-md">
+    <div className="max-w-3xl mx-auto p-8 rounded-md" data-testid="step1-form">
       {/* Header */}
       <RegistrationHeader />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10" data-testid="step1-form-element">
         {/* Personal Info Section */}
         <div>
           <h2 className="text-2xl font-medium mb-4 text-[#1A1A1A]">Personal Info</h2>
@@ -169,6 +169,7 @@ const Step1Form = () => {
                     checked={field.value}
                     onCheckedChange={field.onChange}
                     className="mt-1 border-gray-400"
+                    data-testid="terms-checkbox"
                   />
                   <Label htmlFor="terms" className="text-sm font-normal">
                     I agree to the{" "}
@@ -194,6 +195,7 @@ const Step1Form = () => {
             type="submit"
             className="bg-[#006F5F] hover:bg-[#005a4d] text-white px-16 py-4 h-auto text-lg uppercase transition-colors duration-200"
             disabled={!isValid}
+            data-testid="step1-next-button"
           >
             Next
           </Button>
