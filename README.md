@@ -29,21 +29,31 @@ cd signup-page-challange
 npm install
 ```
 
-2. **Start development server:**
+2. **Build and start production server:**
 ```bash
-npm run dev
+npm run build
+npm start
 ```
 
 3. **Open your browser:**
 Navigate to [http://localhost:3000](http://localhost:3000)
 
+**Alternative - Development mode:**
+```bash
+npm run dev  # For development with hot reload
+```
+
 ## 🔧 Available Scripts
+
+### Production (Recommended)
+```bash
+npm run build        # Build for production
+npm start           # Start production server
+```
 
 ### Development
 ```bash
 npm run dev          # Start development server with Turbopack
-npm run build        # Build for production
-npm start           # Start production server
 npm run lint        # Run ESLint
 ```
 
