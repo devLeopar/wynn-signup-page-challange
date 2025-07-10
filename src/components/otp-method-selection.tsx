@@ -68,11 +68,11 @@ export const OtpMethodSelection = () => {
   if (currentStep !== 2) return null;
 
   return (
-    <div className="max-w-3xl mx-auto p-8 rounded-md">
+    <div className="max-w-3xl mx-auto p-8 rounded-md" data-testid="otp-method-selection">
       {/* Header */}
       <RegistrationHeader />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10" data-testid="otp-method-form">
         {/* OTP Verification Section */}
         <div>
           <h2 className="text-2xl font-medium mb-4 text-[#1A1A1A]">OTP Verification</h2>
@@ -98,6 +98,7 @@ export const OtpMethodSelection = () => {
                       field.onChange('email');
                       handleMethodSelection('email');
                     }}
+                    data-testid="email-otp-option"
                   >
                     <div className={cn(
                       "w-4 h-4 rounded-full border-2 flex items-center justify-center",
@@ -122,6 +123,7 @@ export const OtpMethodSelection = () => {
                       field.onChange('phone');
                       handleMethodSelection('phone');
                     }}
+                    data-testid="phone-otp-option"
                   >
                     <div className={cn(
                       "w-4 h-4 rounded-full border-2 flex items-center justify-center",
@@ -155,6 +157,7 @@ export const OtpMethodSelection = () => {
             onClick={handleBack}
             className="px-16 py-5 h-auto text-lg uppercase border-[#006F5F] text-[#006F5F] hover:bg-[#006F5F]/10 hover:border-[#006F5F] rounded-[4px] transition-colors duration-200 flex-1"
             disabled={isLoading || requestOtpMutation.isPending}
+            data-testid="back-button"
           >
             Back
           </Button>
@@ -163,6 +166,7 @@ export const OtpMethodSelection = () => {
             type="submit"
             className="bg-[#006F5F] hover:bg-[#005a4d] text-white px-16 py-5 h-auto text-lg uppercase transition-colors duration-200 rounded-[4px] flex-1"
             disabled={!isValid || isLoading || requestOtpMutation.isPending}
+            data-testid="send-otp-button"
           >
             {requestOtpMutation.isPending ? 'Sending...' : 'Next'}
           </Button>
